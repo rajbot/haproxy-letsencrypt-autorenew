@@ -102,3 +102,29 @@ backend letsencrypt-backend
         # Lets encrypt backend server
         server letsencrypt 127.0.0.1:9000
 ```
+
+Reload HAProxy after you have made config file changes:
+
+```
+sudo service haproxy reload
+```
+
+
+
+## Step 8 - Configure `certbot` for periodic auto-renewal
+
+Modern versions of `certbot` install a systemd service (`/lib/systemd/system/certbot.service`) and timer (`/lib/systemd/system/certbot.timer`).
+
+However, I've been simply using `cron` for cert renewal. To do that, create a file named `/etc/cron.d/certbot` that contains the following:
+
+```
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+0 */12 * * * root /usr/bin/certbot renew --http-01-port 9000 --post-hook "cat /etc/letsencrypt/live/example.com/fullchain.pem /etc/letsencrypt/live/example.com/privkey.pem > /etc/haproxy/certs/example.com.pem && /usr/sbin/service haproxy reload"
+```
+
+This will cause `certbot` to attempt renewal twice a day. It will launch in standalone mode on port 9000. When it runs, Let's Encrypt servers will attempt to contact your domain on port 443. The HAProxy config will forward all requests that begin with `/.well-known/acme-challenge/` to port 9000, which is the port that `certbot` is listening on.
+
+After the certs are renewed, we will combine the chain cert and domain cert into a single .pem for HAProxy, then will reload HAProxy.
+
