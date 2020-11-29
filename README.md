@@ -128,3 +128,18 @@ This will cause `certbot` to attempt renewal twice a day. It will launch in stan
 
 After the certs are renewed, we will combine the chain cert and domain cert into a single .pem for HAProxy, then will reload HAProxy.
 
+
+## Step 9 - Add new subdomains to your existing certificate
+
+If you later want to add a new subdomain to your existing cert, you can run certbot in standalone mode behind the haproxy that you have set up in the previous steps. To add the subdomain `www2` to your existing cert, you would run this command:
+
+```
+certbot certonly --http-01-port 9000 -d example.com,www.example.com,www2.example.com
+```
+
+Run certbot in standalone mode and confirm that you would like to Expand your certificate. When the new certificate has been written, create a combined .pem file and restart haproxy:
+
+```
+cat /etc/letsencrypt/live/example.com/fullchain.pem /etc/letsencrypt/live/example.com/privkey.pem > /etc/haproxy/certs/example.com.pem && /usr/sbin/service haproxy reload
+```
+
